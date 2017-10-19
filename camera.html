@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
+    <meta name="full-screen" content="yes">
+    <meta name="screen-orientation" content="landscape">
+    <script src="js/jquery-1.10.2.min.js"></script>
+    <script src="js/jquery.mobile-1.4.5.min.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+    <link rel="stylesheet" href="css/camera.css">
+    <title>camera</title>
+
+</head>
+
+<body>
+<div data-role="page" id="pageone">
+    <div class="flex-container1">
+        <div class="flex-item" id="flex-item1">
+            <ul id="ul1">
+                <li class="li" id="FF0000">人物一</li>
+                <li class="li" id="32CD32">人物二</li>
+                <li class="li" id="00008B">人物三</li>
+                <li class="li" id="87CECB">人物四</li>
+                <li class="li" id="FFFFFF">人物五</li>
+            </ul>
+
+        </div>
+        <div class="flex-item" id="flex-item2" style="background-color: black">
+            <input type="button" title="开启摄像头" value="开启摄像头" onclick="getMedia();" /><br />
+            <video id="video" width="330px" height="110px" autoplay="autoplay"></video>
+            <input type="button" title="拍照" value="拍照" onclick="getPhoto();" /><br />
+            <canvas id="canvas1" width="330px" height="110px" style="margin-left: 27%" ></canvas>
+        </div>
+        <div class="flex-item" id="flex-item3">
+            <ul>
+                <li class="li" id="000000">人物六</li>
+                <li class="li" id="FFFF00">人物七</li>
+                <li class="li" id="800080">人物八</li>
+                <li class="li" id="FF86C1">人物九</li>
+                <li class="li" id="8B4513">人物十</li>
+            </ul>
+      </div>
+    </div>
+</div>
+
+<script>
+
+    var video = document.querySelector('video');
+    var audio, audioType;
+
+    var canvas1 = document.getElementById('canvas1');
+    var context1 = canvas1.getContext('2d');
+
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
+
+    var exArray = []; //存储设备源ID
+    MediaStreamTrack.getSources(function (sourceInfos) {
+        for (var i = 0; i != sourceInfos.length; ++i) {
+            var sourceInfo = sourceInfos[i];
+            //这里会遍历audio,video，所以要加以区分
+            if (sourceInfo.kind === 'video') {
+                exArray.push(sourceInfo.id);
+            }
+        }
+    });
+
+    function getMedia() {
+        if (navigator.getUserMedia) {
+            navigator.getUserMedia({
+                'video': {
+                    'optional': [{
+                        'sourceId': exArray[1] //0为前置摄像头，1为后置
+                    }]
+                },
+                'audio':true
+            }, successFunc, errorFunc);    //success是获取成功的回调函数
+        }
+        else {
+            alert('Native device media streaming (getUserMedia) not supported in this browser.');
+        }
+    }
+
+    function successFunc(stream) {
+        //alert('Succeed to get media!');
+        if (video.mozSrcObject !== undefined) {
+            //Firefox中，video.mozSrcObject最初为null，而不是未定义的，我们可以靠这个来检测Firefox的支持
+            video.mozSrcObject = stream;
+        }
+        else {
+            video.src = window.URL && window.URL.createObjectURL(stream) || stream;
+        }
+
+        //video.play();
+
+        // 音频
+        audio = new Audio();
+        audioType = getAudioType(audio);
+        if (audioType) {
+            audio.src = 'polaroid.' + audioType;
+            audio.play();
+        }
+    }
+    function errorFunc(e) {
+        alert('Error！'+e);
+    }
+
+    function getPhoto() {
+        context1.drawImage(video, 0, 0,150,110); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
+
+        sendImage();
+
+    }
+
+    // 上传图片，jQuery版
+    function sendImage(){
+        // 获取 canvas DOM 对象
+        var canvas = document.getElementById('canvas1');
+        // 获取Base64编码后的图像数据，格式是字符串
+        // "data:image/png;base64,"开头,需要在客户端或者服务器端将其去掉，后面的部分可以直接写入文件。
+        var dataurl = canvas.toDataURL("image/png");
+        // 为安全 对URI进行编码
+        // data%3Aimage%2Fpng%3Bbase64%2C 开头
+        var imagedata =  encodeURIComponent(dataurl);
+        console.log(imagedata);
+        //var url = $("#form").attr("action");
+        // 1. 如果form表单不好处理,可以使用某个hidden隐藏域来设置请求地址
+        // <input type="hidden" name="action" value="receive.jsp" />
+        var url = "camera.php";
+        // 2. 也可以直接用某个dom对象的属性来获取
+        // <input id="imageaction" type="hidden" action="receive.jsp">
+        // var url = $("#imageaction").attr("action");
+
+        // 因为是string，所以服务器需要对数据进行转码，写文件操作等。
+        // 个人约定，所有http参数名字全部小写
+       // console.log(dataurl);
+        //console.log(imagedata);
+        var data1 = {
+//            imagename: "myImage.png",
+            imagedata: imagedata
+        };
+        $.ajax( {
+            url : url,
+            data1 : data1,
+            type : "POST",
+            // 期待的返回值类型
+            dataType: "json",
+            success: function(data,status) {
+                console.log(status);
+                console.log(data);
+//                Data=JSON.parse(data);
+//                console.log(Data);
+                var lis = document.getElementsByTagName("li");
+                for (var i = 0; i < 10; i++) {
+//                    if (lis[i].innerHTML == Data.aaa) {   //aaa为0-9    var aaa="3";
+                    if (lis[i].id ==data.bbb) {//颜色
+                        console.log(data.bbb);
+                        var xxx="#"+data.bbb;
+                        console.log(xxx);
+                        lis[i].style.backgroundColor =xxx ;
+                        lis[i].innerHTML = '剩余血量:' + data.ccc; //血量ccc为0-10    var ccc="5";
+                    }
+                }
+                },
+            error:function () {
+                alert("服务器错误！");
+            }
+        });
+    }
+</script>
+</body>
+</html>

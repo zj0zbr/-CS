@@ -1,0 +1,12 @@
+<script>
+    var aaa="3"
+    var bbb="red"
+    var ccc="5"
+    var lis = document.getElementsByTagName("li");
+    for (var i = 0; i < 10; i++) {
+        if (lis[i].innerHTML == aaa) {
+            lis[i].style.backgroundColor = bbb;
+            lis[i].innerHTML = '剩余血量:' + ccc;
+        }
+    }
+</script>
